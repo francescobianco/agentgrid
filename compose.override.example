@@ -1,0 +1,15 @@
+networks:
+  proxy:
+    external: true
+
+services:
+  agentgrid:
+    networks:
+      - proxy
+      - default
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.sftpgo.rule: "Host(`agentgrid.alterloop.dev`)"
+      traefik.http.routers.sftpgo.entrypoints: "websecure"
+      traefik.http.routers.sftpgo.tls.certresolver: "le"
+      traefik.http.services.sftpgo.loadbalancer.server.port: "8067"
