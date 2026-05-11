@@ -1,0 +1,88 @@
+{{define "content"}}
+<div class="space-y-6">
+    <div class="flex items-center gap-4">
+        <a href="/projects/{{.Project.ID}}" class="text-blue-600 hover:underline text-sm">&larr; {{.Project.Name}}</a>
+        <h1 class="text-2xl font-bold text-gray-900">{{.Agent.Name}}</h1>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+        <div class="bg-white rounded-lg shadow p-4">
+            <span class="text-gray-500">Schedule</span>
+            <p class="font-mono font-medium">{{.Agent.CronExpression}}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <span class="text-gray-500">Image</span>
+            <p class="font-medium">{{.Agent.DockerImage}}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <span class="text-gray-500">Working Dir</span>
+            <p class="font-mono font-medium">{{.Agent.WorkingDirectory}}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <span class="text-gray-500">Status</span>
+            <p class="font-medium {{if .Agent.IsActive}}text-green-600{{else}}text-gray-400{{end}}">
+                {{if .Agent.IsActive}}Active{{else}}Inactive{{end}}
+            </p>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Edit Agent</h2>
+        <form method="post" action="/agents/{{.Agent.ID}}" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Name</label>
+                    <input type="text" name="name" value="{{.Agent.Name}}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Cron Expression</label>
+                    <input type="text" name="cron_expression" value="{{.Agent.CronExpression}}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="is_active" id="is_active" {{if .Agent.IsActive}}checked{{end}} class="rounded border-gray-300">
+                <label for="is_active" class="text-sm text-gray-700">Active</label>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Prompt</label>
+                <textarea name="prompt" rows="6" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 font-mono text-sm">{{.Agent.Prompt}}</textarea>
+            </div>
+            <div class="flex gap-2">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm">Update Agent</button>
+                <form method="post" action="/agents/{{.Agent.ID}}/delete" class="inline" onsubmit="return confirm('Delete this agent?')">
+                    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition text-sm">Delete</button>
+                </form>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b flex justify-between items-center">
+            <h2 class="text-lg font-semibold text-gray-900">Runs</h2>
+        </div>
+        <div class="p-6">
+            {{if .Runs}}
+            <div class="space-y-3">
+                {{range .Runs}}
+                <div class="p-4 border rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm text-gray-500">Run #{{.ID}}</span>
+                        <span class="text-sm px-2 py-1 rounded {{if eq .Status "completed"}}bg-green-100 text-green-800{{else if eq .Status "failed"}}bg-red-100 text-red-800{{else if eq .Status "running"}}bg-blue-100 text-blue-800{{else}}bg-gray-100 text-gray-800{{end}}">
+                            {{.Status}}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-500">{{.CreatedAt.Format "Jan 02, 2006 15:04 UTC"}}</p>
+                    {{if .Output}}
+                    <pre class="mt-2 p-3 bg-gray-50 rounded text-xs overflow-x-auto">{{.Output}}</pre>
+                    {{end}}
+                </div>
+                {{end}}
+            </div>
+            {{else}}
+            <p class="text-gray-500 text-center py-8">No runs yet. The agent will run on its schedule.</p>
+            {{end}}
+        </div>
+    </div>
+</div>
+{{end}}
+{{template "base.html" .}}
