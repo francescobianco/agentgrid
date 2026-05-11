@@ -82,6 +82,30 @@ func (s *Server) handleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 }
 
+func (s *Server) handleLocalLogin(w http.ResponseWriter, r *http.Request) {
+	user, err := s.db.GetOrCreateLocalUser()
+	if err != nil {
+		http.Error(w, "Failed to create local user: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	sessionID := uuid.New().String()
+	if err := s.db.CreateSession(user.ID, sessionID); err != nil {
+		http.Error(w, "Failed to create session: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+}
+
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("session")
 	if err == nil {

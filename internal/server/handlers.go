@@ -8,6 +8,10 @@ import (
 )
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
+	if s.mode == "local" {
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
+	}
 	if cookie, err := r.Cookie("session"); err == nil {
 		if _, err := s.db.GetSession(cookie.Value); err == nil {
 			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
@@ -18,13 +22,17 @@ func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLoginPage(w http.ResponseWriter, r *http.Request) {
+	if s.mode == "local" {
+		http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
+		return
+	}
 	if cookie, err := r.Cookie("session"); err == nil {
 		if _, err := s.db.GetSession(cookie.Value); err == nil {
 			http.Redirect(w, r, "/dashboard", http.StatusSeeOther)
 			return
 		}
 	}
-	s.render(w, "login.html", nil)
+	s.render(w, "login.html", map[string]interface{}{"Mode": s.mode})
 }
 
 func (s *Server) handleDashboard(w http.ResponseWriter, r *http.Request) {
@@ -120,8 +128,9 @@ func (s *Server) handleCreateAgent(w http.ResponseWriter, r *http.Request) {
 	if dockerImage == "" {
 		dockerImage = "alpine:latest"
 	}
+	dockerfile := r.FormValue("dockerfile")
 
-	agent, err := s.db.CreateAgent(projectID, name, prompt, cronExpr, workingDir, dockerImage)
+	agent, err := s.db.CreateAgent(projectID, name, prompt, cronExpr, workingDir, dockerImage, dockerfile)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -181,7 +190,8 @@ func (s *Server) handleUpdateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	isActive := r.FormValue("is_active") == "on"
-	s.db.UpdateAgent(id, name, prompt, cronExpr, isActive)
+	dockerfile := r.FormValue("dockerfile")
+	s.db.UpdateAgent(id, name, prompt, cronExpr, dockerfile, isActive)
 
 	if isActive {
 		s.sched.AddAgent(id, cronExpr)
@@ -235,4 +245,44 @@ func (s *Server) handleAgentRuns(w http.ResponseWriter, r *http.Request) {
 		"Agent": agent,
 		"Runs":  runs,
 	})
+}
+
+func (s *Server) handleRunAgentNow(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	agent, err := s.db.GetAgent(id)
+	if err != nil {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	s.sched.RunNow(agent.ID)
+	http.Redirect(w, r, "/agents/"+strconv.FormatInt(id, 10)+"?tab=logs", http.StatusSeeOther)
+}
+
+func (s *Server) handleDryRunAgent(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	agent, err := s.db.GetAgent(id)
+	if err != nil {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	s.sched.DryRun(agent.ID)
+	http.Redirect(w, r, "/agents/"+strconv.FormatInt(id, 10)+"?tab=logs", http.StatusSeeOther)
 }

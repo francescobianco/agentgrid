@@ -18,6 +18,31 @@ func UserFromContext(ctx context.Context) *models.User {
 
 func (s *Server) authMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.mode == "local" {
+			// Try existing session first
+			cookie, err := r.Cookie("session")
+			if err == nil {
+				session, err := s.db.GetSession(cookie.Value)
+				if err == nil {
+					user, err := s.db.GetUser(session.UserID)
+					if err == nil {
+						ctx := context.WithValue(r.Context(), userContextKey, user)
+						next.ServeHTTP(w, r.WithContext(ctx))
+						return
+					}
+				}
+			}
+			// Fallback to local user
+			user, err := s.db.GetOrCreateLocalUser()
+			if err != nil {
+				http.Error(w, "Local auth failed: "+err.Error(), http.StatusInternalServerError)
+				return
+			}
+			ctx := context.WithValue(r.Context(), userContextKey, user)
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
+		}
+
 		cookie, err := r.Cookie("session")
 		if err != nil {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)

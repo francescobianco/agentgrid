@@ -34,6 +34,11 @@
                 <label class="block text-sm font-medium text-gray-700">Prompt</label>
                 <textarea name="prompt" rows="4" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"></textarea>
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Dockerfile (optional)</label>
+                <textarea name="dockerfile" rows="6" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 font-mono text-sm"></textarea>
+                <p class="mt-1 text-xs text-gray-500">If provided, AgentGrid will build the image from this Dockerfile instead of pulling the image above.</p>
+            </div>
             <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm">Create Agent</button>
         </form>
     </div>

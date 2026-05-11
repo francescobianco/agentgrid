@@ -16,12 +16,14 @@ type Server struct {
 	db    *db.Database
 	sched *scheduler.Scheduler
 	tmpls *template.Template
+	mode  string
 }
 
-func New(database *db.Database, sched *scheduler.Scheduler) *Server {
+func New(database *db.Database, sched *scheduler.Scheduler, mode string) *Server {
 	s := &Server{
 		db:    database,
 		sched: sched,
+		mode:  mode,
 	}
 	s.parseTemplates()
 	return s
@@ -55,6 +57,9 @@ func (s *Server) Handler() http.Handler {
 
 	r.Get("/auth/github", s.handleGitHubLogin)
 	r.Get("/auth/github/callback", s.handleGitHubCallback)
+	if s.mode == "local" {
+		r.Get("/auth/local", s.handleLocalLogin)
+	}
 	r.Post("/auth/logout", s.handleLogout)
 
 	r.Group(func(r chi.Router) {
@@ -73,6 +78,8 @@ func (s *Server) Handler() http.Handler {
 		r.Post("/agents/{id}", s.handleUpdateAgent)
 		r.Post("/agents/{id}/delete", s.handleDeleteAgent)
 		r.Get("/agents/{id}/runs", s.handleAgentRuns)
+		r.Post("/agents/{id}/run", s.handleRunAgentNow)
+		r.Post("/agents/{id}/dry-run", s.handleDryRunAgent)
 	})
 
 	return r

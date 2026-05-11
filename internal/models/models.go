@@ -32,6 +32,7 @@ type Agent struct {
 	CronExpression   string    `json:"cron_expression"`
 	WorkingDirectory string    `json:"working_directory"`
 	DockerImage      string    `json:"docker_image"`
+	Dockerfile       string    `json:"dockerfile"`
 	IsActive         bool      `json:"is_active"`
 	CreatedAt        time.Time `json:"created_at"`
 }

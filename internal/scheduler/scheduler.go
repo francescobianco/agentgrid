@@ -1,11 +1,13 @@
 package scheduler
 
 import (
+	"fmt"
 	"log"
 	"sync"
 
 	"agentgrid/internal/db"
 	"agentgrid/internal/docker"
+	"agentgrid/internal/models"
 	"github.com/robfig/cron/v3"
 )
 
@@ -71,21 +73,47 @@ func (s *Scheduler) AddAgent(agentID int64, cronExpr string) error {
 }
 
 func (s *Scheduler) executeAgent(agentID int64) {
+	s.runAgent(agentID, false)
+}
+
+func (s *Scheduler) runAgent(agentID int64, dry bool) *models.AgentRun {
 	agent, err := s.db.GetAgent(agentID)
 	if err != nil {
 		log.Printf("Error fetching agent %d: %v", agentID, err)
-		return
+		return nil
 	}
 
 	run, err := s.db.CreateAgentRun(agentID)
 	if err != nil {
 		log.Printf("Error creating run for agent %d: %v", agentID, err)
-		return
+		return nil
 	}
 
-	s.db.UpdateAgentRun(run.ID, "running", "")
+	if dry {
+		s.db.UpdateAgentRun(run.ID, "dry-run", "")
+	} else {
+		s.db.UpdateAgentRun(run.ID, "running", "")
+	}
 
-	result := docker.RunAgent(agent.Prompt, agent.DockerImage)
+	image := agent.DockerImage
+	if agent.Dockerfile != "" {
+		tag := fmt.Sprintf("agentgrid-agent-%d", agent.ID)
+		buildResult := docker.BuildImage(agent.Dockerfile, tag)
+		if buildResult.Error != nil {
+			s.db.UpdateAgentRun(run.ID, "failed", "Build failed:\n"+buildResult.Output+"\nError: "+buildResult.Error.Error())
+			log.Printf("Agent %d run %d build failed", agentID, run.ID)
+			return run
+		}
+		image = tag
+	}
+
+	if dry {
+		s.db.UpdateAgentRun(run.ID, "dry-run", "Image built and ready.\n"+image)
+		log.Printf("Agent %d dry-run completed", agentID)
+		return run
+	}
+
+	result := docker.RunAgent(agent.Prompt, image, agent.WorkingDirectory)
 
 	status := "completed"
 	output := result.Output
@@ -96,4 +124,13 @@ func (s *Scheduler) executeAgent(agentID int64) {
 
 	s.db.UpdateAgentRun(run.ID, status, output)
 	log.Printf("Agent %d run %d completed with status %s", agentID, run.ID, status)
+	return run
+}
+
+func (s *Scheduler) RunNow(agentID int64) *models.AgentRun {
+	return s.runAgent(agentID, false)
+}
+
+func (s *Scheduler) DryRun(agentID int64) *models.AgentRun {
+	return s.runAgent(agentID, true)
 }
