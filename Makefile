@@ -20,3 +20,8 @@ clean:
 data/agentgrid.db:
 	@mkdir -p data
 	@touch data/agentgrid.db
+
+push:
+	@git add .
+	@git commit -m "Update" || true
+	@git push

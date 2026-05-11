@@ -1,5 +1,6 @@
 .env
 data/
 bin/
+compose.override.yml
 agentgrid
 *.db

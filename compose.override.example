@@ -9,7 +9,7 @@ services:
       - default
     labels:
       traefik.enable: "true"
-      traefik.http.routers.sftpgo.rule: "Host(`agentgrid.alterloop.dev`)"
-      traefik.http.routers.sftpgo.entrypoints: "websecure"
-      traefik.http.routers.sftpgo.tls.certresolver: "le"
-      traefik.http.services.sftpgo.loadbalancer.server.port: "8067"
+      traefik.http.routers.agentgrid.rule: "Host(`agentgrid.alterloop.dev`)"
+      traefik.http.routers.agentgrid.entrypoints: "websecure"
+      traefik.http.routers.agentgrid.tls.certresolver: "le"
+      traefik.http.services.agentgrid.loadbalancer.server.port: "8067"
