@@ -56,15 +56,16 @@
                             {{end}}
                         </td>
                         <td class="px-4 py-2 text-sm text-gray-500">{{if .IsDir}}—{{else}}{{.Size}} bytes{{end}}</td>
-                        <td class="px-4 py-2 text-right text-sm">
-                            {{if not .IsDir}}
-                            <a href="/agents/{{$.Agent.ID}}/files/download?path={{.Path}}" class="text-blue-600 hover:underline mr-3">Download</a>
-                            {{end}}
-                            <form method="post" action="/agents/{{$.Agent.ID}}/files/delete" class="inline" onsubmit="return confirm('Delete {{.Name}}?')">
-                                <input type="hidden" name="path" value="{{.Path}}">
-                                <button type="submit" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
-                            </form>
-                        </td>
+                            <td class="px-4 py-2 text-right text-sm">
+                                {{if not .IsDir}}
+                                <a href="/agents/{{$.Agent.ID}}/files/edit?path={{.Path}}" class="text-blue-600 hover:underline mr-3">Edit</a>
+                                <a href="/agents/{{$.Agent.ID}}/files/download?path={{.Path}}" class="text-blue-600 hover:underline mr-3">Download</a>
+                                {{end}}
+                                <form method="post" action="/agents/{{$.Agent.ID}}/files/delete" class="inline" onsubmit="return confirm('Delete {{.Name}}?')">
+                                    <input type="hidden" name="path" value="{{.Path}}">
+                                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                                </form>
+                            </td>
                     </tr>
                     {{else}}
                     <tr>

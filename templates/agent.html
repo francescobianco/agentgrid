@@ -16,7 +16,10 @@
             <input type="hidden" name="cron_expression" value="{{.Agent.CronExpression}}">
             <input type="hidden" name="prompt" value="{{.Agent.Prompt}}">
             <input type="hidden" name="dockerfile" value="{{.Agent.Dockerfile}}">
-            <input type="hidden" name="is_active" value="{{if .Agent.IsActive}}on{{end}}">
+            <div class="flex items-center gap-2">
+                <input type="checkbox" name="is_active" id="is_active" {{if .Agent.IsActive}}checked{{end}} class="rounded border-gray-300">
+                <label for="is_active" class="text-sm text-gray-700">Active</label>
+            </div>
             <div class="flex gap-2">
                 <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm">Update Agent</button>
                 <form method="post" action="/agents/{{.Agent.ID}}/delete" class="inline" onsubmit="return confirm('Delete this agent?')">

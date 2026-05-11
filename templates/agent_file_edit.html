@@ -1,0 +1,21 @@
+{{template "base" .}}
+{{define "agent_file_edit_content"}}
+<div class="space-y-6">
+    {{template "agent_header" .}}
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center gap-4 mb-4">
+            <a href="/agents/{{.Agent.ID}}/files?dir={{.ParentDir}}" class="text-blue-600 hover:underline text-sm">&larr; Back</a>
+            <h2 class="text-lg font-semibold text-gray-900">Edit {{.Path}}</h2>
+        </div>
+        <form method="post" action="/agents/{{.Agent.ID}}/files/save" class="space-y-4">
+            <input type="hidden" name="path" value="{{.Path}}">
+            <textarea name="content" rows="24" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 font-mono text-sm">{{.Content}}</textarea>
+            <div class="flex gap-2">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm">Save</button>
+                <a href="/agents/{{.Agent.ID}}/files?dir={{.ParentDir}}" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition text-sm">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}

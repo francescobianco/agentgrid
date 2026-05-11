@@ -27,7 +27,7 @@ func (s *Server) handleGitHubLogin(w http.ResponseWriter, r *http.Request) {
 
 	baseURL := os.Getenv("BASE_URL")
 	if baseURL == "" {
-		baseURL = "http://localhost:8080"
+		baseURL = "http://localhost:8067"
 	}
 
 	redirectURI := baseURL + "/auth/github/callback"

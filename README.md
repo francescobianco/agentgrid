@@ -27,7 +27,7 @@ cp .env.example .env
 make start
 ```
 
-Open http://localhost:8080 and you are ready to create your first project and agent.
+Open http://localhost:8067 and you are ready to create your first project and agent.
 
 ## Deployment Modes
 
@@ -67,8 +67,8 @@ All configuration is done through environment variables or a `.env` file.
 | `AGENTGRID_MODE` | `local` or `public` | `public` |
 | `GITHUB_CLIENT_ID` | GitHub OAuth client ID | — |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth client secret | — |
-| `BASE_URL` | Base URL for OAuth callbacks | `http://localhost:8080` |
-| `PORT` | HTTP server port | `8080` |
+| `BASE_URL` | Base URL for OAuth callbacks | `http://localhost:8067` |
+| `PORT` | HTTP server port | `8067` |
 | `DATABASE_PATH` | SQLite database file path | `data/agentgrid.db` |
 
 ## Project Structure

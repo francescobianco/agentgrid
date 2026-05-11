@@ -16,7 +16,15 @@ type Result struct {
 	Error  error
 }
 
-func RunAgent(prompt, dockerImage, workspacePath, containerWorkDir string) Result {
+func buildEnvArgs(env map[string]string) []string {
+	var args []string
+	for k, v := range env {
+		args = append(args, "-e", k+"="+v)
+	}
+	return args
+}
+
+func RunAgent(dockerImage, workspacePath, containerWorkDir string, env map[string]string, script string) Result {
 	args := []string{"run", "--rm"}
 	if workspacePath != "" {
 		absPath, _ := filepath.Abs(workspacePath)
@@ -27,7 +35,13 @@ func RunAgent(prompt, dockerImage, workspacePath, containerWorkDir string) Resul
 		args = append(args, "-v", absPath+":"+work)
 		args = append(args, "-w", work)
 	}
-	args = append(args, "-e", "PROMPT="+prompt, dockerImage, "sh", "-c", "echo \"$PROMPT\"")
+	args = append(args, buildEnvArgs(env)...)
+
+	cmdStr := "echo \"$WAKEUP_PROMPT\""
+	if script != "" {
+		cmdStr = script
+	}
+	args = append(args, dockerImage, "sh", "-c", cmdStr)
 
 	cmd := exec.Command("docker", args...)
 
@@ -44,7 +58,7 @@ func RunAgent(prompt, dockerImage, workspacePath, containerWorkDir string) Resul
 	return Result{Output: output, Error: err}
 }
 
-func RunAgentStream(prompt, dockerImage, workspacePath, containerWorkDir string) (io.ReadCloser, error) {
+func RunAgentStream(dockerImage, workspacePath, containerWorkDir string, env map[string]string, script string) (io.ReadCloser, error) {
 	args := []string{"run", "--rm"}
 	if workspacePath != "" {
 		absPath, _ := filepath.Abs(workspacePath)
@@ -55,7 +69,13 @@ func RunAgentStream(prompt, dockerImage, workspacePath, containerWorkDir string)
 		args = append(args, "-v", absPath+":"+work)
 		args = append(args, "-w", work)
 	}
-	args = append(args, "-e", "PROMPT="+prompt, dockerImage, "sh", "-c", "echo \"$PROMPT\"")
+	args = append(args, buildEnvArgs(env)...)
+
+	cmdStr := "echo \"$WAKEUP_PROMPT\""
+	if script != "" {
+		cmdStr = script
+	}
+	args = append(args, dockerImage, "sh", "-c", cmdStr)
 
 	cmd := exec.Command("docker", args...)
 

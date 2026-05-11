@@ -82,6 +82,9 @@ func (s *Server) Handler() http.Handler {
 		r.Get("/projects/new", s.handleNewProjectPage)
 		r.Post("/projects", s.handleCreateProject)
 		r.Get("/projects/{id}", s.handleProject)
+		r.Get("/projects/{id}/secrets", s.handleProjectSecrets)
+		r.Post("/projects/{id}/secrets", s.handleCreateSecret)
+		r.Post("/projects/{id}/secrets/delete", s.handleDeleteSecret)
 		r.Post("/projects/{id}/delete", s.handleDeleteProject)
 
 		r.Get("/projects/{id}/agents/new", s.handleNewAgentPage)
@@ -99,6 +102,8 @@ func (s *Server) Handler() http.Handler {
 		r.Post("/agents/{id}/run", s.handleRunAgentNow)
 		r.Post("/agents/{id}/dry-run", s.handleDryRunAgent)
 		r.Get("/agents/{id}/files", s.handleAgentFiles)
+		r.Get("/agents/{id}/files/edit", s.handleEditFilePage)
+		r.Post("/agents/{id}/files/save", s.handleSaveFile)
 		r.Post("/agents/{id}/files/upload", s.handleUploadFile)
 		r.Get("/agents/{id}/files/download", s.handleDownloadFile)
 		r.Post("/agents/{id}/files/delete", s.handleDeleteFile)

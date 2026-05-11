@@ -26,6 +26,11 @@
                 <label class="block text-sm font-medium text-gray-700">Prompt</label>
                 <textarea name="prompt" rows="4" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"></textarea>
             </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Wake Up Script (optional)</label>
+                <textarea name="script" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 font-mono text-sm"></textarea>
+                <p class="mt-1 text-xs text-gray-500">Shell script executed at wake-up. The prompt is available as $WAKEUP_PROMPT and mission as $AGENT_MISSION.</p>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Docker Image</label>

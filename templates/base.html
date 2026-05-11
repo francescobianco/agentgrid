@@ -43,6 +43,8 @@
             {{template "agent_docker_content" .}}
         {{else if eq .ContentBlock "agent_files_content"}}
             {{template "agent_files_content" .}}
+        {{else if eq .ContentBlock "agent_file_edit_content"}}
+            {{template "agent_file_edit_content" .}}
         {{else if eq .ContentBlock "agent_sessions_content"}}
             {{template "agent_sessions_content" .}}
         {{else if eq .ContentBlock "agent_logs_content"}}

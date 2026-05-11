@@ -139,6 +139,15 @@ func (s *Scheduler) runAgent(agentID int64, dry bool) *models.AgentRun {
 	workspace := filepath.Join("data", "workspaces", strconv.FormatInt(agent.ProjectID, 10))
 	os.MkdirAll(workspace, 0755)
 
+	secrets, _ := s.db.ListProjectSecrets(agent.ProjectID)
+	env := map[string]string{
+		"WAKEUP_PROMPT": agent.Prompt,
+		"AGENT_MISSION": agent.Mission,
+	}
+	for _, sec := range secrets {
+		env[sec.Name] = sec.Value
+	}
+
 	if dry {
 		msg := "Image built and ready.\n" + image
 		stream.Mu.Lock()
@@ -153,7 +162,7 @@ func (s *Scheduler) runAgent(agentID int64, dry bool) *models.AgentRun {
 		return run
 	}
 
-	reader, err := docker.RunAgentStream(agent.Prompt, image, workspace, agent.WorkingDirectory)
+	reader, err := docker.RunAgentStream(image, workspace, agent.WorkingDirectory, env, agent.Script)
 	if err != nil {
 		msg := "Failed to start container: " + err.Error()
 		stream.Mu.Lock()

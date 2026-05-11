@@ -30,12 +30,21 @@ type Agent struct {
 	Name             string    `json:"name"`
 	Mission          string    `json:"mission"`
 	Prompt           string    `json:"prompt"`
+	Script           string    `json:"script"`
 	CronExpression   string    `json:"cron_expression"`
 	WorkingDirectory string    `json:"working_directory"`
 	DockerImage      string    `json:"docker_image"`
 	Dockerfile       string    `json:"dockerfile"`
 	IsActive         bool      `json:"is_active"`
 	CreatedAt        time.Time `json:"created_at"`
+}
+
+type ProjectSecret struct {
+	ID        int64     `json:"id"`
+	ProjectID int64     `json:"project_id"`
+	Name      string    `json:"name"`
+	Value     string    `json:"value"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type AgentRun struct {

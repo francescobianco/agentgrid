@@ -129,6 +129,75 @@ func (s *Server) handleDeleteProject(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/projects", http.StatusSeeOther)
 }
 
+func (s *Server) handleProjectSecrets(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	project, err := s.db.GetProject(id)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	agents, _ := s.db.ListAgents(project.ID)
+	runs24h, _ := s.db.CountAgentRunsLast24h(project.ID)
+	secrets, _ := s.db.ListProjectSecrets(project.ID)
+
+	activeAgents := 0
+	for _, a := range agents {
+		if a.IsActive {
+			activeAgents++
+		}
+	}
+
+	s.render(w, "project.html", map[string]interface{}{
+		"User":         user,
+		"Project":      project,
+		"Agents":       agents,
+		"AgentCount":   len(agents),
+		"ActiveAgents": activeAgents,
+		"Runs24h":      runs24h,
+		"Secrets":      secrets,
+		"ShowSecrets":  true,
+	})
+}
+
+func (s *Server) handleCreateSecret(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	project, err := s.db.GetProject(id)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	name := r.FormValue("name")
+	value := r.FormValue("value")
+	if name == "" || value == "" {
+		http.Error(w, "Name and value are required", http.StatusBadRequest)
+		return
+	}
+
+	s.db.CreateProjectSecret(id, name, value)
+	http.Redirect(w, r, "/projects/"+strconv.FormatInt(id, 10)+"?tab=secrets", http.StatusSeeOther)
+}
+
+func (s *Server) handleDeleteSecret(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	project, err := s.db.GetProject(id)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	name := r.FormValue("name")
+	s.db.DeleteProjectSecret(id, name)
+	http.Redirect(w, r, "/projects/"+strconv.FormatInt(id, 10)+"?tab=secrets", http.StatusSeeOther)
+}
+
 func (s *Server) handleNewAgentPage(w http.ResponseWriter, r *http.Request) {
 	user := UserFromContext(r.Context())
 	projectID, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
@@ -158,6 +227,7 @@ func (s *Server) handleCreateAgent(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	mission := r.FormValue("mission")
 	prompt := r.FormValue("prompt")
+	script := r.FormValue("script")
 	cronExpr := r.FormValue("cron_expression")
 	if name == "" || prompt == "" || cronExpr == "" {
 		http.Error(w, "Name, prompt, and cron expression are required", http.StatusBadRequest)
@@ -174,7 +244,7 @@ func (s *Server) handleCreateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	dockerfile := r.FormValue("dockerfile")
 
-	agent, err := s.db.CreateAgent(projectID, name, mission, prompt, cronExpr, workingDir, dockerImage, dockerfile)
+	agent, err := s.db.CreateAgent(projectID, name, mission, prompt, script, cronExpr, workingDir, dockerImage, dockerfile)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -321,6 +391,7 @@ func (s *Server) handleUpdateAgent(w http.ResponseWriter, r *http.Request) {
 	name := r.FormValue("name")
 	mission := r.FormValue("mission")
 	prompt := r.FormValue("prompt")
+	script := r.FormValue("script")
 	cronExpr := r.FormValue("cron_expression")
 	if name == "" || prompt == "" || cronExpr == "" {
 		http.Error(w, "Name, prompt, and cron expression are required", http.StatusBadRequest)
@@ -329,7 +400,7 @@ func (s *Server) handleUpdateAgent(w http.ResponseWriter, r *http.Request) {
 
 	isActive := r.FormValue("is_active") == "on"
 	dockerfile := r.FormValue("dockerfile")
-	s.db.UpdateAgent(id, name, mission, prompt, cronExpr, dockerfile, isActive)
+	s.db.UpdateAgent(id, name, mission, prompt, script, cronExpr, dockerfile, isActive)
 
 	if isActive {
 		s.sched.AddAgent(id, cronExpr)
@@ -563,6 +634,79 @@ func (s *Server) handleAgentFiles(w http.ResponseWriter, r *http.Request) {
 		"Files":      files,
 		"CurrentDir": relDir,
 	})
+}
+
+func (s *Server) handleEditFilePage(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	agent, err := s.db.GetAgent(id)
+	if err != nil {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	workspace := filepath.Join("data", "workspaces", strconv.FormatInt(project.ID, 10))
+	filePath := r.URL.Query().Get("path")
+	cleanPath := filepath.Clean("/" + filePath)
+	targetPath := filepath.Join(workspace, cleanPath)
+
+	info, err := os.Stat(targetPath)
+	if err != nil || info.IsDir() {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	content, err := os.ReadFile(targetPath)
+	if err != nil {
+		http.Error(w, "Failed to read file", http.StatusInternalServerError)
+		return
+	}
+
+	s.render(w, "agent_file_edit.html", map[string]interface{}{
+		"User":      user,
+		"Agent":     agent,
+		"Project":   project,
+		"Path":      filePath,
+		"Content":   string(content),
+		"ParentDir": filepath.Dir(filePath),
+	})
+}
+
+func (s *Server) handleSaveFile(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	agent, err := s.db.GetAgent(id)
+	if err != nil {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	workspace := filepath.Join("data", "workspaces", strconv.FormatInt(project.ID, 10))
+	filePath := r.FormValue("path")
+	cleanPath := filepath.Clean("/" + filePath)
+	targetPath := filepath.Join(workspace, cleanPath)
+
+	content := r.FormValue("content")
+	if err := os.WriteFile(targetPath, []byte(content), 0644); err != nil {
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(w, r, "/agents/"+strconv.FormatInt(id, 10)+"/files?dir="+filepath.Dir(filePath), http.StatusSeeOther)
 }
 
 func (s *Server) handleUploadFile(w http.ResponseWriter, r *http.Request) {

@@ -92,6 +92,6 @@ Both actions redirect to a **dedicated run page** where the output is streamed i
 | `AGENTGRID_MODE` | `local` or `public` | `public` |
 | `GITHUB_CLIENT_ID` | GitHub OAuth client ID | — |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth client secret | — |
-| `BASE_URL` | Base URL for OAuth callbacks | `http://localhost:8080` |
-| `PORT` | HTTP server port | `8080` |
+| `BASE_URL` | Base URL for OAuth callbacks | `http://localhost:8067` |
+| `PORT` | HTTP server port | `8067` |
 | `DATABASE_PATH` | SQLite database file path | `data/agentgrid.db` |
