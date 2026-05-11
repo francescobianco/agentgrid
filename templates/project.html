@@ -13,7 +13,7 @@
     </div>
     <p class="text-gray-500">{{.Project.Description}}</p>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div class="bg-white rounded-lg shadow p-6">
             <h3 class="text-sm font-medium text-gray-500">Agents</h3>
             <p class="text-3xl font-bold text-gray-900">{{.AgentCount}}</p>
@@ -26,31 +26,10 @@
             <h3 class="text-sm font-medium text-gray-500">Runs (24h)</h3>
             <p class="text-3xl font-bold text-blue-600">{{.Runs24h}}</p>
         </div>
-    </div>
-
-    <div class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Secrets</h2>
-        <p class="text-sm text-gray-500 mb-4">Secrets are environment variables passed to every agent run in this project. Values can only be saved or deleted — never read back.</p>
-        <form method="post" action="/projects/{{.Project.ID}}/secrets" class="flex gap-2 mb-4">
-            <input type="text" name="name" placeholder="NAME" required class="text-sm border rounded p-2 uppercase">
-            <input type="text" name="value" placeholder="Value" required class="text-sm border rounded p-2 flex-1">
-            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded text-sm hover:bg-blue-700 transition">Add Secret</button>
-        </form>
-        {{if .Secrets}}
-        <div class="space-y-2">
-            {{range .Secrets}}
-            <div class="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
-                <span class="text-sm font-mono font-medium text-gray-700">{{.Name}}</span>
-                <form method="post" action="/projects/{{$.Project.ID}}/secrets/delete" class="inline" onsubmit="return confirm('Delete secret {{.Name}}?')">
-                    <input type="hidden" name="name" value="{{.Name}}">
-                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
-                </form>
-            </div>
-            {{end}}
-        </div>
-        {{else}}
-        <p class="text-gray-500 text-sm">No secrets yet.</p>
-        {{end}}
+        <a href="/projects/{{.Project.ID}}/secrets" class="bg-white rounded-lg shadow p-6 hover:bg-gray-50 transition block">
+            <h3 class="text-sm font-medium text-gray-500">Secrets</h3>
+            <p class="text-3xl font-bold text-purple-600">Manage</p>
+        </a>
     </div>
 
     <div class="bg-white rounded-lg shadow">

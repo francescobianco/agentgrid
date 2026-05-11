@@ -1,0 +1,32 @@
+# Build artifacts
+bin/
+data/
+*.db
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# Environment files
+.env
+.env.example
+
+# Documentation and notes
+README.md
+NOTES.md
+docs/
+
+# Compose and Makefile
+compose.yml
+Makefile
+
+# Misc
+.convcommit
+LICENSE
+
+# Tests
+*_test.go

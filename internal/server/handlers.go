@@ -139,26 +139,12 @@ func (s *Server) handleProjectSecrets(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	agents, _ := s.db.ListAgents(project.ID)
-	runs24h, _ := s.db.CountAgentRunsLast24h(project.ID)
 	secrets, _ := s.db.ListProjectSecrets(project.ID)
 
-	activeAgents := 0
-	for _, a := range agents {
-		if a.IsActive {
-			activeAgents++
-		}
-	}
-
-	s.render(w, "project.html", map[string]interface{}{
-		"User":         user,
-		"Project":      project,
-		"Agents":       agents,
-		"AgentCount":   len(agents),
-		"ActiveAgents": activeAgents,
-		"Runs24h":      runs24h,
-		"Secrets":      secrets,
-		"ShowSecrets":  true,
+	s.render(w, "project_secrets.html", map[string]interface{}{
+		"User":    user,
+		"Project": project,
+		"Secrets": secrets,
 	})
 }
 

@@ -57,6 +57,8 @@
             {{template "login_content" .}}
         {{else if eq .ContentBlock "project_content"}}
             {{template "project_content" .}}
+        {{else if eq .ContentBlock "project_secrets_content"}}
+            {{template "project_secrets_content" .}}
         {{else if eq .ContentBlock "project_new_content"}}
             {{template "project_new_content" .}}
         {{else if eq .ContentBlock "projects_content"}}
