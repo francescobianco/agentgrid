@@ -4,12 +4,7 @@
     {{template "agent_header" .}}
 
     <div class="bg-white rounded-lg shadow p-6">
-        <form method="post" action="/agents/{{.Agent.ID}}" class="space-y-4">
-            <input type="hidden" name="name" value="{{.Agent.Name}}">
-            <input type="hidden" name="mission" value="{{.Agent.Mission}}">
-            <input type="hidden" name="cron_expression" value="{{.Agent.CronExpression}}">
-            <input type="hidden" name="prompt" value="{{.Agent.Prompt}}">
-            <input type="hidden" name="is_active" value="{{if .Agent.IsActive}}on{{end}}">
+        <form method="post" action="/agents/{{.Agent.ID}}/docker" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Docker Image</label>

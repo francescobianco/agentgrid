@@ -189,9 +189,9 @@ func (db *Database) DeleteProject(id int64) error {
 	return err
 }
 
-func (db *Database) CreateAgent(projectID int64, name, mission, prompt, script, cronExpression, workingDirectory, dockerImage, dockerfile string) (*models.Agent, error) {
-	res, err := db.Exec(`INSERT INTO agents (project_id, name, mission, prompt, script, cron_expression, working_directory, docker_image, dockerfile) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		projectID, name, mission, prompt, script, cronExpression, workingDirectory, dockerImage, dockerfile)
+func (db *Database) CreateAgent(projectID int64, name, mission, prompt, script, cronExpression, workingDirectory, dockerImage, dockerfile string, isActive bool) (*models.Agent, error) {
+	res, err := db.Exec(`INSERT INTO agents (project_id, name, mission, prompt, script, cron_expression, working_directory, docker_image, dockerfile, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		projectID, name, mission, prompt, script, cronExpression, workingDirectory, dockerImage, dockerfile, isActive)
 	if err != nil {
 		return nil, err
 	}
@@ -231,9 +231,9 @@ func (db *Database) DeleteAgent(id int64) error {
 	return err
 }
 
-func (db *Database) UpdateAgent(id int64, name, mission, prompt, script, cronExpression, dockerfile string, isActive bool) error {
-	_, err := db.Exec(`UPDATE agents SET name=?, mission=?, prompt=?, script=?, cron_expression=?, dockerfile=?, is_active=? WHERE id=?`,
-		name, mission, prompt, script, cronExpression, dockerfile, isActive, id)
+func (db *Database) UpdateAgent(id int64, name, mission, prompt, script, cronExpression, dockerfile, dockerImage, workingDirectory string, isActive bool) error {
+	_, err := db.Exec(`UPDATE agents SET name=?, mission=?, prompt=?, script=?, cron_expression=?, dockerfile=?, docker_image=?, working_directory=?, is_active=? WHERE id=?`,
+		name, mission, prompt, script, cronExpression, dockerfile, dockerImage, workingDirectory, isActive, id)
 	return err
 }
 

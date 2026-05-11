@@ -212,32 +212,19 @@ func (s *Server) handleCreateAgent(w http.ResponseWriter, r *http.Request) {
 
 	name := r.FormValue("name")
 	mission := r.FormValue("mission")
-	prompt := r.FormValue("prompt")
-	script := r.FormValue("script")
-	cronExpr := r.FormValue("cron_expression")
-	if name == "" || prompt == "" || cronExpr == "" {
-		http.Error(w, "Name, prompt, and cron expression are required", http.StatusBadRequest)
+	if name == "" {
+		http.Error(w, "Name is required", http.StatusBadRequest)
 		return
 	}
 
-	workingDir := r.FormValue("working_directory")
-	if workingDir == "" {
-		workingDir = "/work"
-	}
-	dockerImage := r.FormValue("docker_image")
-	if dockerImage == "" {
-		dockerImage = "alpine:latest"
-	}
-	dockerfile := r.FormValue("dockerfile")
-
-	agent, err := s.db.CreateAgent(projectID, name, mission, prompt, script, cronExpr, workingDir, dockerImage, dockerfile)
+	// New agents start inactive until configured in the Wake Up tab
+	agent, err := s.db.CreateAgent(projectID, name, mission, "", "", "", "/work", "alpine:latest", "", false)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	s.sched.AddAgent(agent.ID, cronExpr)
-	http.Redirect(w, r, "/projects/"+strconv.FormatInt(projectID, 10), http.StatusSeeOther)
+	http.Redirect(w, r, "/agents/"+strconv.FormatInt(agent.ID, 10), http.StatusSeeOther)
 }
 
 func (s *Server) handleAgent(w http.ResponseWriter, r *http.Request) {
@@ -379,14 +366,43 @@ func (s *Server) handleUpdateAgent(w http.ResponseWriter, r *http.Request) {
 	prompt := r.FormValue("prompt")
 	script := r.FormValue("script")
 	cronExpr := r.FormValue("cron_expression")
-	if name == "" || prompt == "" || cronExpr == "" {
-		http.Error(w, "Name, prompt, and cron expression are required", http.StatusBadRequest)
+	dockerfile := r.FormValue("dockerfile")
+	dockerImage := r.FormValue("docker_image")
+	workingDir := r.FormValue("working_directory")
+	isActive := r.FormValue("is_active") == "on"
+
+	if name == "" {
+		http.Error(w, "Name is required", http.StatusBadRequest)
 		return
 	}
 
-	isActive := r.FormValue("is_active") == "on"
-	dockerfile := r.FormValue("dockerfile")
-	s.db.UpdateAgent(id, name, mission, prompt, script, cronExpr, dockerfile, isActive)
+	// Only require prompt and cron when activating the agent
+	if isActive && (prompt == "" || cronExpr == "") {
+		http.Error(w, "Prompt and cron expression are required to activate the agent", http.StatusBadRequest)
+		return
+	}
+
+	// Fall back to existing values for fields not sent by this form
+	if prompt == "" && !isActive {
+		prompt = agent.Prompt
+	}
+	if cronExpr == "" && !isActive {
+		cronExpr = agent.CronExpression
+	}
+	if script == "" {
+		script = agent.Script
+	}
+	if dockerfile == "" {
+		dockerfile = agent.Dockerfile
+	}
+	if dockerImage == "" {
+		dockerImage = agent.DockerImage
+	}
+	if workingDir == "" {
+		workingDir = agent.WorkingDirectory
+	}
+
+	s.db.UpdateAgent(id, name, mission, prompt, script, cronExpr, dockerfile, dockerImage, workingDir, isActive)
 
 	if isActive {
 		s.sched.AddAgent(id, cronExpr)
@@ -395,6 +411,70 @@ func (s *Server) handleUpdateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/agents/"+strconv.FormatInt(id, 10), http.StatusSeeOther)
+}
+
+func (s *Server) handleUpdateAgentWake(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	agent, err := s.db.GetAgent(id)
+	if err != nil {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	prompt := r.FormValue("prompt")
+	script := r.FormValue("script")
+	cronExpr := r.FormValue("cron_expression")
+	if cronExpr == "" || prompt == "" {
+		http.Error(w, "Cron expression and prompt are required", http.StatusBadRequest)
+		return
+	}
+
+	s.db.UpdateAgent(id, agent.Name, agent.Mission, prompt, script, cronExpr, agent.Dockerfile, agent.DockerImage, agent.WorkingDirectory, agent.IsActive)
+
+	if agent.IsActive {
+		s.sched.AddAgent(id, cronExpr)
+	}
+
+	http.Redirect(w, r, "/agents/"+strconv.FormatInt(id, 10)+"/wake", http.StatusSeeOther)
+}
+
+func (s *Server) handleUpdateAgentDocker(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+
+	agent, err := s.db.GetAgent(id)
+	if err != nil {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	dockerImage := r.FormValue("docker_image")
+	workingDir := r.FormValue("working_directory")
+	dockerfile := r.FormValue("dockerfile")
+	if dockerImage == "" {
+		dockerImage = "alpine:latest"
+	}
+	if workingDir == "" {
+		workingDir = "/work"
+	}
+
+	s.db.UpdateAgent(id, agent.Name, agent.Mission, agent.Prompt, agent.Script, agent.CronExpression, dockerfile, dockerImage, workingDir, agent.IsActive)
+
+	http.Redirect(w, r, "/agents/"+strconv.FormatInt(id, 10)+"/docker", http.StatusSeeOther)
 }
 
 func (s *Server) handleDeleteAgent(w http.ResponseWriter, r *http.Request) {

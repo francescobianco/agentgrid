@@ -7,10 +7,8 @@ services:
     volumes:
       - agentgrid-data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      AGENTGRID_MODE: local
-      PORT: "8067"
-      DATABASE_PATH: /app/data/agentgrid.db
+    env_file:
+      - .env
     restart: unless-stopped
 
 volumes:
