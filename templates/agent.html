@@ -18,10 +18,11 @@
     <div class="bg-white rounded-lg shadow">
         <div class="border-b">
             <nav class="flex -mb-px" id="agent-tabs">
-                <button onclick="showTab('wake')" id="tab-btn-wake" class="tab-btn border-blue-500 text-blue-600 border-b-2 px-6 py-3 text-sm font-medium">Wake Up</button>
-                <button onclick="showTab('docker')" id="tab-btn-docker" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 px-6 py-3 text-sm font-medium">Docker</button>
-                <button onclick="showTab('logs')" id="tab-btn-logs" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 px-6 py-3 text-sm font-medium">Logs</button>
-                <button onclick="showTab('sessions')" id="tab-btn-sessions" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 px-6 py-3 text-sm font-medium">Sessions</button>
+                <span id="tab-btn-wake" class="tab-btn border-blue-500 text-blue-600 border-b-2 px-6 py-3 text-sm font-medium">Wake Up</span>
+                <a id="tab-btn-docker" href="/agents/{{.Agent.ID}}?tab=docker" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 px-6 py-3 text-sm font-medium">Docker</a>
+                <a id="tab-btn-logs" href="/agents/{{.Agent.ID}}?tab=logs" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 px-6 py-3 text-sm font-medium">Logs</a>
+                <a id="tab-btn-sessions" href="/agents/{{.Agent.ID}}?tab=sessions" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 px-6 py-3 text-sm font-medium">Sessions</a>
+                <a href="/agents/{{.Agent.ID}}/files" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 px-6 py-3 text-sm font-medium">Files</a>
             </nav>
         </div>
 
@@ -154,8 +155,10 @@ function showTab(name) {
     });
     document.getElementById('tab-' + name).classList.remove('hidden');
     const btn = document.getElementById('tab-btn-' + name);
-    btn.classList.remove('border-transparent', 'text-gray-500');
-    btn.classList.add('border-blue-500', 'text-blue-600');
+    if (btn) {
+        btn.classList.remove('border-transparent', 'text-gray-500');
+        btn.classList.add('border-blue-500', 'text-blue-600');
+    }
 }
 
 (function() {

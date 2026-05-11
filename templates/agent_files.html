@@ -1,0 +1,103 @@
+{{template "base" .}}
+{{define "agent_files_content"}}
+<div class="space-y-6">
+    <div class="flex items-center gap-4">
+        <a href="/projects/{{.Project.ID}}" class="text-blue-600 hover:underline text-sm">&larr; {{.Project.Name}}</a>
+        <h1 class="text-2xl font-bold text-gray-900">{{.Agent.Name}}</h1>
+    </div>
+
+    <div class="flex gap-3">
+        <form method="post" action="/agents/{{.Agent.ID}}/run" class="inline">
+            <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium">Run Now</button>
+        </form>
+        <form method="post" action="/agents/{{.Agent.ID}}/dry-run" class="inline">
+            <button type="submit" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition text-sm font-medium">Dry Run</button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-lg shadow">
+        <div class="border-b">
+            <nav class="flex -mb-px" id="agent-tabs">
+                <a href="/agents/{{.Agent.ID}}" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 px-6 py-3 text-sm font-medium">Wake Up</a>
+                <a href="/agents/{{.Agent.ID}}?tab=docker" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 px-6 py-3 text-sm font-medium">Docker</a>
+                <a href="/agents/{{.Agent.ID}}?tab=logs" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 px-6 py-3 text-sm font-medium">Logs</a>
+                <a href="/agents/{{.Agent.ID}}?tab=sessions" class="tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 px-6 py-3 text-sm font-medium">Sessions</a>
+                <span class="tab-btn border-blue-500 text-blue-600 border-b-2 px-6 py-3 text-sm font-medium">Files</span>
+            </nav>
+        </div>
+
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">Project Files</h2>
+                <span class="text-xs text-gray-500">Workspace shared across all agents in this project</span>
+            </div>
+
+            <div class="flex gap-3 mb-4 flex-wrap">
+                <form method="post" action="/agents/{{.Agent.ID}}/files/upload?dir={{.CurrentDir}}" enctype="multipart/form-data" class="flex gap-2 items-center">
+                    <input type="file" name="file" required class="text-sm border rounded p-1">
+                    <button type="submit" class="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 transition">Upload</button>
+                </form>
+                <form method="post" action="/agents/{{.Agent.ID}}/files/mkdir?dir={{.CurrentDir}}" class="flex gap-2 items-center">
+                    <input type="text" name="name" placeholder="New folder" required class="text-sm border rounded p-1 px-2">
+                    <button type="submit" class="bg-gray-600 text-white px-3 py-1.5 rounded text-sm hover:bg-gray-700 transition">Create</button>
+                </form>
+            </div>
+
+            {{if .CurrentDir}}
+            <div class="mb-4 text-sm text-gray-600">
+                <a href="/agents/{{.Agent.ID}}/files?dir=" class="text-blue-600 hover:underline">root</a>
+                <span class="text-gray-400"> / {{.CurrentDir}}</span>
+            </div>
+            {{end}}
+
+            <div class="border rounded-lg overflow-hidden">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Size</th>
+                            <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {{if .CurrentDir}}
+                        <tr>
+                            <td class="px-4 py-2 text-sm" colspan="3">
+                                <a href="/agents/{{.Agent.ID}}/files?dir=" class="text-blue-600 hover:underline">.. (up to root)</a>
+                            </td>
+                        </tr>
+                        {{end}}
+                        {{range .Files}}
+                        <tr>
+                            <td class="px-4 py-2 text-sm">
+                                {{if .IsDir}}
+                                <span class="text-yellow-600 mr-1">&#128193;</span>
+                                <a href="/agents/{{$.Agent.ID}}/files?dir={{.Path}}" class="text-blue-600 hover:underline">{{.Name}}</a>
+                                {{else}}
+                                <span class="text-gray-400 mr-1">&#128196;</span>
+                                <span>{{.Name}}</span>
+                                {{end}}
+                            </td>
+                            <td class="px-4 py-2 text-sm text-gray-500">{{if .IsDir}}—{{else}}{{.Size}} bytes{{end}}</td>
+                            <td class="px-4 py-2 text-right text-sm">
+                                {{if not .IsDir}}
+                                <a href="/agents/{{$.Agent.ID}}/files/download?path={{.Path}}" class="text-blue-600 hover:underline mr-3">Download</a>
+                                {{end}}
+                                <form method="post" action="/agents/{{$.Agent.ID}}/files/delete" class="inline" onsubmit="return confirm('Delete {{.Name}}?')">
+                                    <input type="hidden" name="path" value="{{.Path}}">
+                                    <button type="submit" class="text-red-600 hover:text-red-800 text-sm">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr>
+                            <td class="px-4 py-4 text-sm text-gray-500 text-center" colspan="3">No files yet.</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

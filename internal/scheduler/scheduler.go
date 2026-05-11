@@ -3,6 +3,9 @@ package scheduler
 import (
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
+	"strconv"
 	"sync"
 
 	"agentgrid/internal/db"
@@ -107,13 +110,16 @@ func (s *Scheduler) runAgent(agentID int64, dry bool) *models.AgentRun {
 		image = tag
 	}
 
+	workspace := filepath.Join("data", "workspaces", strconv.FormatInt(agent.ProjectID, 10))
+	os.MkdirAll(workspace, 0755)
+
 	if dry {
 		s.db.UpdateAgentRun(run.ID, "dry-run", "Image built and ready.\n"+image)
 		log.Printf("Agent %d dry-run completed", agentID)
 		return run
 	}
 
-	result := docker.RunAgent(agent.Prompt, image, agent.WorkingDirectory)
+	result := docker.RunAgent(agent.Prompt, image, workspace, agent.WorkingDirectory)
 
 	status := "completed"
 	output := result.Output

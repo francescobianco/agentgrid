@@ -286,3 +286,16 @@ func (db *Database) UpdateAgentRun(id int64, status, output string) error {
 	_, err := db.Exec(`UPDATE agent_runs SET status=?, output=?, finished_at=? WHERE id=?`, status, output, now, id)
 	return err
 }
+
+func (db *Database) CountAgentRunsLast24h(projectID int64) (int, error) {
+	var count int
+	err := db.QueryRow(`
+		SELECT COUNT(*) FROM agent_runs
+		WHERE agent_id IN (SELECT id FROM agents WHERE project_id = ?)
+		AND created_at >= datetime('now', '-1 day')
+	`, projectID).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

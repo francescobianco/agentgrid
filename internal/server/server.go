@@ -73,10 +73,12 @@ func (s *Server) Handler() http.Handler {
 		r.Get("/dashboard", s.handleDashboard)
 
 		r.Get("/projects", s.handleProjects)
+		r.Get("/projects/new", s.handleNewProjectPage)
 		r.Post("/projects", s.handleCreateProject)
 		r.Get("/projects/{id}", s.handleProject)
 		r.Post("/projects/{id}/delete", s.handleDeleteProject)
 
+		r.Get("/projects/{id}/agents/new", s.handleNewAgentPage)
 		r.Post("/projects/{id}/agents", s.handleCreateAgent)
 
 		r.Get("/agents/{id}", s.handleAgent)
@@ -85,6 +87,11 @@ func (s *Server) Handler() http.Handler {
 		r.Get("/agents/{id}/runs", s.handleAgentRuns)
 		r.Post("/agents/{id}/run", s.handleRunAgentNow)
 		r.Post("/agents/{id}/dry-run", s.handleDryRunAgent)
+		r.Get("/agents/{id}/files", s.handleAgentFiles)
+		r.Post("/agents/{id}/files/upload", s.handleUploadFile)
+		r.Get("/agents/{id}/files/download", s.handleDownloadFile)
+		r.Post("/agents/{id}/files/delete", s.handleDeleteFile)
+		r.Post("/agents/{id}/files/mkdir", s.handleMkdir)
 	})
 
 	return r

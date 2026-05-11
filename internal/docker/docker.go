@@ -14,11 +14,16 @@ type Result struct {
 	Error  error
 }
 
-func RunAgent(prompt, dockerImage, workingDir string) Result {
+func RunAgent(prompt, dockerImage, workspacePath, containerWorkDir string) Result {
 	args := []string{"run", "--rm"}
-	if workingDir != "" {
-		args = append(args, "-v", workingDir+":/work")
-		args = append(args, "-w", "/work")
+	if workspacePath != "" {
+		absPath, _ := filepath.Abs(workspacePath)
+		work := containerWorkDir
+		if work == "" {
+			work = "/work"
+		}
+		args = append(args, "-v", absPath+":"+work)
+		args = append(args, "-w", work)
 	}
 	args = append(args, "-e", "PROMPT="+prompt, dockerImage, "sh", "-c", "echo \"$PROMPT\"")
 

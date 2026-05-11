@@ -10,8 +10,8 @@ AgentGrid supports two deployment modes controlled by the `AGENTGRID_MODE` envir
 ## Projects
 
 - Users can create multiple projects.
-- Each project has a name and an optional description.
-- Projects are isolated: agents belong to a single project.
+- Each project has a dedicated **workspace** folder (`data/workspaces/{project_id}/`) shared by all agents in the project.
+- The project dashboard shows metrics: total agents, active agents, and runs in the last 24 hours.
 - Deleting a project removes all associated agents and their run history (cascaded by the database).
 
 ## Agents
@@ -39,12 +39,18 @@ The agent configuration page is organised in tabs:
    - A historical list of every time the agent woke up.
    - Each row shows the run ID, status, start/finish times, and a summary of what the agent did.
 
+5. **Files**
+   - A file browser for the project workspace.
+   - Navigate folders, upload files, download files, create folders, and delete items.
+   - The workspace is shared across all agents in the same project.
+   - When an agent runs, its project workspace is mounted into the container so the agent can only access files inside its own project.
+
 ### Actions
 
 From the top of the agent page you can trigger two immediate actions:
 
 - **Run Now** — Executes the agent immediately and records the result as a normal run.
-- **Dry Run** — Executes the agent immediately but records the result with status `dry-run` so it is clearly marked as a test.
+- **Dry Run** — Builds the image (if a Dockerfile is provided) but does **not** execute the wake-up prompt. The result is recorded with status `dry-run`.
 
 Both actions redirect to the **Logs** tab after completion so you can inspect the output right away.
 
