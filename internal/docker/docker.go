@@ -3,10 +3,12 @@ package docker
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 )
 
 type Result struct {
@@ -40,6 +42,54 @@ func RunAgent(prompt, dockerImage, workspacePath, containerWorkDir string) Resul
 	}
 
 	return Result{Output: output, Error: err}
+}
+
+func RunAgentStream(prompt, dockerImage, workspacePath, containerWorkDir string) (io.ReadCloser, error) {
+	args := []string{"run", "--rm"}
+	if workspacePath != "" {
+		absPath, _ := filepath.Abs(workspacePath)
+		work := containerWorkDir
+		if work == "" {
+			work = "/work"
+		}
+		args = append(args, "-v", absPath+":"+work)
+		args = append(args, "-w", work)
+	}
+	args = append(args, "-e", "PROMPT="+prompt, dockerImage, "sh", "-c", "echo \"$PROMPT\"")
+
+	cmd := exec.Command("docker", args...)
+
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return nil, err
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := cmd.Start(); err != nil {
+		return nil, err
+	}
+
+	pr, pw := io.Pipe()
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		io.Copy(pw, stdout)
+		wg.Done()
+	}()
+	go func() {
+		io.Copy(pw, stderr)
+		wg.Done()
+	}()
+	go func() {
+		wg.Wait()
+		cmd.Wait()
+		pw.Close()
+	}()
+
+	return pr, nil
 }
 
 func BuildImage(dockerfile, tag string) Result {

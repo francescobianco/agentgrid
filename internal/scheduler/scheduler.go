@@ -1,6 +1,8 @@
 package scheduler
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +14,17 @@ import (
 	"agentgrid/internal/docker"
 	"agentgrid/internal/models"
 	"github.com/robfig/cron/v3"
+)
+
+type RunStream struct {
+	Buffer bytes.Buffer
+	Mu     sync.Mutex
+	Done   chan struct{}
+}
+
+var (
+	RunStreams   = make(map[int64]*RunStream)
+	RunStreamsMu sync.RWMutex
 )
 
 type Scheduler struct {
@@ -98,12 +111,25 @@ func (s *Scheduler) runAgent(agentID int64, dry bool) *models.AgentRun {
 		s.db.UpdateAgentRun(run.ID, "running", "")
 	}
 
+	stream := &RunStream{Done: make(chan struct{})}
+	RunStreamsMu.Lock()
+	RunStreams[run.ID] = stream
+	RunStreamsMu.Unlock()
+
 	image := agent.DockerImage
 	if agent.Dockerfile != "" {
 		tag := fmt.Sprintf("agentgrid-agent-%d", agent.ID)
 		buildResult := docker.BuildImage(agent.Dockerfile, tag)
 		if buildResult.Error != nil {
-			s.db.UpdateAgentRun(run.ID, "failed", "Build failed:\n"+buildResult.Output+"\nError: "+buildResult.Error.Error())
+			msg := "Build failed:\n" + buildResult.Output + "\nError: " + buildResult.Error.Error()
+			stream.Mu.Lock()
+			stream.Buffer.WriteString(msg)
+			stream.Mu.Unlock()
+			s.db.UpdateAgentRun(run.ID, "failed", msg)
+			close(stream.Done)
+			RunStreamsMu.Lock()
+			delete(RunStreams, run.ID)
+			RunStreamsMu.Unlock()
 			log.Printf("Agent %d run %d build failed", agentID, run.ID)
 			return run
 		}
@@ -114,21 +140,54 @@ func (s *Scheduler) runAgent(agentID int64, dry bool) *models.AgentRun {
 	os.MkdirAll(workspace, 0755)
 
 	if dry {
-		s.db.UpdateAgentRun(run.ID, "dry-run", "Image built and ready.\n"+image)
+		msg := "Image built and ready.\n" + image
+		stream.Mu.Lock()
+		stream.Buffer.WriteString(msg)
+		stream.Mu.Unlock()
+		s.db.UpdateAgentRun(run.ID, "dry-run", msg)
+		close(stream.Done)
+		RunStreamsMu.Lock()
+		delete(RunStreams, run.ID)
+		RunStreamsMu.Unlock()
 		log.Printf("Agent %d dry-run completed", agentID)
 		return run
 	}
 
-	result := docker.RunAgent(agent.Prompt, image, workspace, agent.WorkingDirectory)
+	reader, err := docker.RunAgentStream(agent.Prompt, image, workspace, agent.WorkingDirectory)
+	if err != nil {
+		msg := "Failed to start container: " + err.Error()
+		stream.Mu.Lock()
+		stream.Buffer.WriteString(msg)
+		stream.Mu.Unlock()
+		s.db.UpdateAgentRun(run.ID, "failed", msg)
+		close(stream.Done)
+		RunStreamsMu.Lock()
+		delete(RunStreams, run.ID)
+		RunStreamsMu.Unlock()
+		return run
+	}
+
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		line := scanner.Text()
+		stream.Mu.Lock()
+		stream.Buffer.WriteString(line + "\n")
+		stream.Mu.Unlock()
+	}
+	reader.Close()
 
 	status := "completed"
-	output := result.Output
-	if result.Error != nil {
+	output := stream.Buffer.String()
+	if scanner.Err() != nil {
 		status = "failed"
-		output += "\nError: " + result.Error.Error()
+		output += "\nError: " + scanner.Err().Error()
 	}
 
 	s.db.UpdateAgentRun(run.ID, status, output)
+	close(stream.Done)
+	RunStreamsMu.Lock()
+	delete(RunStreams, run.ID)
+	RunStreamsMu.Unlock()
 	log.Printf("Agent %d run %d completed with status %s", agentID, run.ID, status)
 	return run
 }

@@ -17,6 +17,16 @@
                     <label class="block text-sm font-medium text-gray-700">Cron Expression</label>
                     <input type="text" name="cron_expression" placeholder="*/5 * * * *" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
                 </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Mission</label>
+                <textarea name="mission" rows="2" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"></textarea>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Prompt</label>
+                <textarea name="prompt" rows="4" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"></textarea>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700">Docker Image</label>
                     <input type="text" name="docker_image" placeholder="alpine:latest" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
@@ -25,10 +35,6 @@
                     <label class="block text-sm font-medium text-gray-700">Working Directory</label>
                     <input type="text" name="working_directory" placeholder="/work" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
                 </div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Prompt</label>
-                <textarea name="prompt" rows="4" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2"></textarea>
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Dockerfile (optional)</label>

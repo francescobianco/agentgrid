@@ -1,0 +1,72 @@
+{{template "base" .}}
+{{define "run_content"}}
+<div class="space-y-6">
+    <div class="flex items-center gap-4">
+        <a href="/agents/{{.Agent.ID}}" class="text-blue-600 hover:underline text-sm">&larr; {{.Agent.Name}}</a>
+        <h1 class="text-2xl font-bold text-gray-900">Run #{{.Run.ID}}</h1>
+        <span class="text-xs px-2 py-0.5 rounded {{if eq .Run.Status "completed"}}bg-green-100 text-green-800{{else if eq .Run.Status "failed"}}bg-red-100 text-red-800{{else if eq .Run.Status "running"}}bg-blue-100 text-blue-800{{else if eq .Run.Status "dry-run"}}bg-yellow-100 text-yellow-800{{else}}bg-gray-100 text-gray-800{{end}}">
+            {{.Run.Status}}
+        </span>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div class="bg-white rounded-lg shadow p-4">
+            <span class="text-gray-500">Started</span>
+            <p class="font-medium">{{if .Run.StartedAt}}{{.Run.StartedAt.Format "Jan 02, 2006 15:04:05 UTC"}}{{else}}—{{end}}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <span class="text-gray-500">Finished</span>
+            <p class="font-medium">{{if .Run.FinishedAt}}{{.Run.FinishedAt.Format "Jan 02, 2006 15:04:05 UTC"}}{{else}}—{{end}}</p>
+        </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <span class="text-gray-500">Created</span>
+            <p class="font-medium">{{.Run.CreatedAt.Format "Jan 02, 2006 15:04:05 UTC"}}</p>
+        </div>
+    </div>
+
+    <div class="bg-gray-900 rounded-lg shadow overflow-hidden">
+        <div class="px-4 py-2 bg-gray-800 border-b border-gray-700 flex justify-between items-center">
+            <span class="text-xs text-gray-400 font-mono">Live Output</span>
+            <span id="stream-status" class="text-xs text-yellow-400 font-mono">Connecting...</span>
+        </div>
+        <div class="p-4">
+            <pre id="run-output" class="text-xs font-mono text-gray-300 whitespace-pre-wrap min-h-[200px]">{{.Run.Output}}</pre>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const output = document.getElementById('run-output');
+    const status = document.getElementById('stream-status');
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = proto + '//' + window.location.host + '/agents/{{.Agent.ID}}/runs/{{.Run.ID}}/stream';
+    
+    function connect() {
+        const ws = new WebSocket(wsUrl);
+        
+        ws.onopen = function() {
+            status.textContent = 'Streaming...';
+            status.className = 'text-xs text-green-400 font-mono';
+        };
+        
+        ws.onmessage = function(event) {
+            output.textContent += event.data;
+            window.scrollTo(0, document.body.scrollHeight);
+        };
+        
+        ws.onclose = function() {
+            status.textContent = 'Disconnected';
+            status.className = 'text-xs text-gray-400 font-mono';
+        };
+        
+        ws.onerror = function() {
+            status.textContent = 'Error';
+            status.className = 'text-xs text-red-400 font-mono';
+        };
+    }
+    
+    connect();
+})();
+</script>
+{{end}}

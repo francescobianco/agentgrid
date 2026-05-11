@@ -7,8 +7,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
+
+	"agentgrid/internal/scheduler"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/websocket"
 )
 
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
@@ -152,6 +156,7 @@ func (s *Server) handleCreateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := r.FormValue("name")
+	mission := r.FormValue("mission")
 	prompt := r.FormValue("prompt")
 	cronExpr := r.FormValue("cron_expression")
 	if name == "" || prompt == "" || cronExpr == "" {
@@ -169,7 +174,7 @@ func (s *Server) handleCreateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	dockerfile := r.FormValue("dockerfile")
 
-	agent, err := s.db.CreateAgent(projectID, name, prompt, cronExpr, workingDir, dockerImage, dockerfile)
+	agent, err := s.db.CreateAgent(projectID, name, mission, prompt, cronExpr, workingDir, dockerImage, dockerfile)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -221,6 +226,7 @@ func (s *Server) handleUpdateAgent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	name := r.FormValue("name")
+	mission := r.FormValue("mission")
 	prompt := r.FormValue("prompt")
 	cronExpr := r.FormValue("cron_expression")
 	if name == "" || prompt == "" || cronExpr == "" {
@@ -230,7 +236,7 @@ func (s *Server) handleUpdateAgent(w http.ResponseWriter, r *http.Request) {
 
 	isActive := r.FormValue("is_active") == "on"
 	dockerfile := r.FormValue("dockerfile")
-	s.db.UpdateAgent(id, name, prompt, cronExpr, dockerfile, isActive)
+	s.db.UpdateAgent(id, name, mission, prompt, cronExpr, dockerfile, isActive)
 
 	if isActive {
 		s.sched.AddAgent(id, cronExpr)
@@ -302,8 +308,12 @@ func (s *Server) handleRunAgentNow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.sched.RunNow(agent.ID)
-	http.Redirect(w, r, "/agents/"+strconv.FormatInt(id, 10)+"?tab=logs", http.StatusSeeOther)
+	run := s.sched.RunNow(agent.ID)
+	if run == nil {
+		http.Error(w, "Run failed to start", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/agents/"+strconv.FormatInt(id, 10)+"/runs/"+strconv.FormatInt(run.ID, 10), http.StatusSeeOther)
 }
 
 func (s *Server) handleDryRunAgent(w http.ResponseWriter, r *http.Request) {
@@ -322,8 +332,113 @@ func (s *Server) handleDryRunAgent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.sched.DryRun(agent.ID)
-	http.Redirect(w, r, "/agents/"+strconv.FormatInt(id, 10)+"?tab=logs", http.StatusSeeOther)
+	run := s.sched.DryRun(agent.ID)
+	if run == nil {
+		http.Error(w, "Run failed to start", http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/agents/"+strconv.FormatInt(id, 10)+"/runs/"+strconv.FormatInt(run.ID, 10), http.StatusSeeOther)
+}
+
+func (s *Server) handleRunDetail(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	agentID, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	runID, _ := strconv.ParseInt(chi.URLParam(r, "run_id"), 10, 64)
+
+	agent, err := s.db.GetAgent(agentID)
+	if err != nil {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	run, err := s.db.GetAgentRun(runID)
+	if err != nil || run.AgentID != agentID {
+		http.Error(w, "Run not found", http.StatusNotFound)
+		return
+	}
+
+	s.render(w, "run.html", map[string]interface{}{
+		"User":    user,
+		"Agent":   agent,
+		"Project": project,
+		"Run":     run,
+	})
+}
+
+func (s *Server) handleRunStream(w http.ResponseWriter, r *http.Request) {
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+	defer conn.Close()
+
+	user := UserFromContext(r.Context())
+	agentID, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	runID, _ := strconv.ParseInt(chi.URLParam(r, "run_id"), 10, 64)
+
+	agent, err := s.db.GetAgent(agentID)
+	if err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte("Error: agent not found"))
+		return
+	}
+
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		conn.WriteMessage(websocket.TextMessage, []byte("Error: forbidden"))
+		return
+	}
+
+	// Try to attach to live stream
+	var stream *scheduler.RunStream
+	scheduler.RunStreamsMu.RLock()
+	stream = scheduler.RunStreams[runID]
+	scheduler.RunStreamsMu.RUnlock()
+
+	if stream != nil {
+		lastLen := 0
+		ticker := time.NewTicker(100 * time.Millisecond)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-stream.Done:
+				stream.Mu.Lock()
+				data := stream.Buffer.String()[lastLen:]
+				stream.Mu.Unlock()
+				if len(data) > 0 {
+					conn.WriteMessage(websocket.TextMessage, []byte(data))
+				}
+				conn.WriteMessage(websocket.TextMessage, []byte("\n\n=== RUN COMPLETE ==="))
+				return
+			case <-ticker.C:
+				stream.Mu.Lock()
+				newLen := stream.Buffer.Len()
+				data := stream.Buffer.String()[lastLen:newLen]
+				stream.Mu.Unlock()
+				if newLen > lastLen {
+					conn.WriteMessage(websocket.TextMessage, []byte(data))
+					lastLen = newLen
+				}
+			}
+		}
+	}
+
+	// Run already finished, read from DB
+	run, err := s.db.GetAgentRun(runID)
+	if err != nil {
+		conn.WriteMessage(websocket.TextMessage, []byte("Error: run not found"))
+		return
+	}
+	conn.WriteMessage(websocket.TextMessage, []byte(run.Output))
+	conn.WriteMessage(websocket.TextMessage, []byte("\n\n=== RUN COMPLETE ==="))
 }
 
 func (s *Server) handleAgentFiles(w http.ResponseWriter, r *http.Request) {

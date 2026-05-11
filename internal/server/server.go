@@ -85,6 +85,8 @@ func (s *Server) Handler() http.Handler {
 		r.Post("/agents/{id}", s.handleUpdateAgent)
 		r.Post("/agents/{id}/delete", s.handleDeleteAgent)
 		r.Get("/agents/{id}/runs", s.handleAgentRuns)
+		r.Get("/agents/{id}/runs/{run_id}", s.handleRunDetail)
+		r.Get("/agents/{id}/runs/{run_id}/stream", s.handleRunStream)
 		r.Post("/agents/{id}/run", s.handleRunAgentNow)
 		r.Post("/agents/{id}/dry-run", s.handleDryRunAgent)
 		r.Get("/agents/{id}/files", s.handleAgentFiles)

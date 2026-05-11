@@ -28,6 +28,7 @@ type Agent struct {
 	ID               int64     `json:"id"`
 	ProjectID        int64     `json:"project_id"`
 	Name             string    `json:"name"`
+	Mission          string    `json:"mission"`
 	Prompt           string    `json:"prompt"`
 	CronExpression   string    `json:"cron_expression"`
 	WorkingDirectory string    `json:"working_directory"`

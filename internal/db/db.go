@@ -48,6 +48,7 @@ func (db *Database) Migrate() error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
 			name TEXT NOT NULL,
+			mission TEXT DEFAULT '',
 			prompt TEXT NOT NULL,
 			cron_expression TEXT NOT NULL,
 			working_directory TEXT DEFAULT '/work',
@@ -71,6 +72,8 @@ func (db *Database) Migrate() error {
 			return fmt.Errorf("migrate: %w", err)
 		}
 	}
+	// backward-compat: add mission column if missing
+	db.Exec(`ALTER TABLE agents ADD COLUMN mission TEXT DEFAULT ''`)
 	return nil
 }
 
@@ -176,9 +179,9 @@ func (db *Database) DeleteProject(id int64) error {
 	return err
 }
 
-func (db *Database) CreateAgent(projectID int64, name, prompt, cronExpression, workingDirectory, dockerImage, dockerfile string) (*models.Agent, error) {
-	res, err := db.Exec(`INSERT INTO agents (project_id, name, prompt, cron_expression, working_directory, docker_image, dockerfile) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		projectID, name, prompt, cronExpression, workingDirectory, dockerImage, dockerfile)
+func (db *Database) CreateAgent(projectID int64, name, mission, prompt, cronExpression, workingDirectory, dockerImage, dockerfile string) (*models.Agent, error) {
+	res, err := db.Exec(`INSERT INTO agents (project_id, name, mission, prompt, cron_expression, working_directory, docker_image, dockerfile) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+		projectID, name, mission, prompt, cronExpression, workingDirectory, dockerImage, dockerfile)
 	if err != nil {
 		return nil, err
 	}
@@ -188,8 +191,8 @@ func (db *Database) CreateAgent(projectID int64, name, prompt, cronExpression, w
 
 func (db *Database) GetAgent(id int64) (*models.Agent, error) {
 	a := &models.Agent{}
-	err := db.QueryRow(`SELECT id, project_id, name, prompt, cron_expression, working_directory, docker_image, dockerfile, is_active, created_at FROM agents WHERE id = ?`, id).
-		Scan(&a.ID, &a.ProjectID, &a.Name, &a.Prompt, &a.CronExpression, &a.WorkingDirectory, &a.DockerImage, &a.Dockerfile, &a.IsActive, &a.CreatedAt)
+	err := db.QueryRow(`SELECT id, project_id, name, mission, prompt, cron_expression, working_directory, docker_image, dockerfile, is_active, created_at FROM agents WHERE id = ?`, id).
+		Scan(&a.ID, &a.ProjectID, &a.Name, &a.Mission, &a.Prompt, &a.CronExpression, &a.WorkingDirectory, &a.DockerImage, &a.Dockerfile, &a.IsActive, &a.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +200,7 @@ func (db *Database) GetAgent(id int64) (*models.Agent, error) {
 }
 
 func (db *Database) ListAgents(projectID int64) ([]models.Agent, error) {
-	rows, err := db.Query(`SELECT id, project_id, name, prompt, cron_expression, working_directory, docker_image, dockerfile, is_active, created_at FROM agents WHERE project_id = ? ORDER BY created_at DESC`, projectID)
+	rows, err := db.Query(`SELECT id, project_id, name, mission, prompt, cron_expression, working_directory, docker_image, dockerfile, is_active, created_at FROM agents WHERE project_id = ? ORDER BY created_at DESC`, projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +208,7 @@ func (db *Database) ListAgents(projectID int64) ([]models.Agent, error) {
 	var agents []models.Agent
 	for rows.Next() {
 		var a models.Agent
-		if err := rows.Scan(&a.ID, &a.ProjectID, &a.Name, &a.Prompt, &a.CronExpression, &a.WorkingDirectory, &a.DockerImage, &a.Dockerfile, &a.IsActive, &a.CreatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.ProjectID, &a.Name, &a.Mission, &a.Prompt, &a.CronExpression, &a.WorkingDirectory, &a.DockerImage, &a.Dockerfile, &a.IsActive, &a.CreatedAt); err != nil {
 			return nil, err
 		}
 		agents = append(agents, a)
@@ -218,14 +221,14 @@ func (db *Database) DeleteAgent(id int64) error {
 	return err
 }
 
-func (db *Database) UpdateAgent(id int64, name, prompt, cronExpression, dockerfile string, isActive bool) error {
-	_, err := db.Exec(`UPDATE agents SET name=?, prompt=?, cron_expression=?, dockerfile=?, is_active=? WHERE id=?`,
-		name, prompt, cronExpression, dockerfile, isActive, id)
+func (db *Database) UpdateAgent(id int64, name, mission, prompt, cronExpression, dockerfile string, isActive bool) error {
+	_, err := db.Exec(`UPDATE agents SET name=?, mission=?, prompt=?, cron_expression=?, dockerfile=?, is_active=? WHERE id=?`,
+		name, mission, prompt, cronExpression, dockerfile, isActive, id)
 	return err
 }
 
 func (db *Database) ListActiveAgents() ([]models.Agent, error) {
-	rows, err := db.Query(`SELECT id, project_id, name, prompt, cron_expression, working_directory, docker_image, dockerfile, is_active, created_at FROM agents WHERE is_active = 1`)
+	rows, err := db.Query(`SELECT id, project_id, name, mission, prompt, cron_expression, working_directory, docker_image, dockerfile, is_active, created_at FROM agents WHERE is_active = 1`)
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +236,7 @@ func (db *Database) ListActiveAgents() ([]models.Agent, error) {
 	var agents []models.Agent
 	for rows.Next() {
 		var a models.Agent
-		if err := rows.Scan(&a.ID, &a.ProjectID, &a.Name, &a.Prompt, &a.CronExpression, &a.WorkingDirectory, &a.DockerImage, &a.Dockerfile, &a.IsActive, &a.CreatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.ProjectID, &a.Name, &a.Mission, &a.Prompt, &a.CronExpression, &a.WorkingDirectory, &a.DockerImage, &a.Dockerfile, &a.IsActive, &a.CreatedAt); err != nil {
 			return nil, err
 		}
 		agents = append(agents, a)

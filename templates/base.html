@@ -53,6 +53,8 @@
             {{template "project_new_content" .}}
         {{else if eq .ContentBlock "projects_content"}}
             {{template "projects_content" .}}
+        {{else if eq .ContentBlock "run_content"}}
+            {{template "run_content" .}}
         {{end}}
     </main>
     <footer class="bg-white border-t mt-auto">

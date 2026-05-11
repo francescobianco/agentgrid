@@ -26,18 +26,29 @@ The agent configuration page is organised in tabs:
    - **Cron expression** — A standard cron string that defines when the agent wakes up and executes.
    - **Wake up prompt** — The prompt/command that is passed to the agent at wake-up time.
 
-2. **Docker**
+2. **Wake Up**
+   - **Cron expression** — The schedule that defines when the agent wakes up.
+   - **Wake up prompt** — The prompt/command executed at wake-up time.
+   - **Active toggle** — Enable or disable the schedule.
+
+3. **Docker**
    - **Docker image** — The base image used to run the agent container.
    - **Working directory** — The directory inside the container where the command runs.
    - **Dockerfile** — An optional custom Dockerfile. When provided, AgentGrid builds the image from this Dockerfile instead of pulling a pre-built image.
 
-3. **Logs**
-   - Shows the full output of every executed run.
-   - Displays status (`pending`, `running`, `completed`, `failed`, `dry-run`), timestamps, and stdout/stderr.
+4. **Files**
+   - File browser for the project workspace.
+   - Navigate folders, upload, download, create folders, and delete files.
+   - The workspace is mounted into every agent run so the agent can only access files inside its own project.
 
-4. **Sessions**
+5. **Sessions**
    - A historical list of every time the agent woke up.
    - Each row shows the run ID, status, start/finish times, and a summary of what the agent did.
+   - Click any run to open its dedicated live-log page.
+
+6. **Logs**
+   - Shows the full output of every executed run in detail.
+   - Displays status, timestamps, and stdout/stderr.
 
 5. **Files**
    - A file browser for the project workspace.
@@ -52,7 +63,7 @@ From the top of the agent page you can trigger two immediate actions:
 - **Run Now** — Executes the agent immediately and records the result as a normal run.
 - **Dry Run** — Builds the image (if a Dockerfile is provided) but does **not** execute the wake-up prompt. The result is recorded with status `dry-run`.
 
-Both actions redirect to the **Logs** tab after completion so you can inspect the output right away.
+Both actions redirect to a **dedicated run page** where the output is streamed in real time via WebSocket, similar to a CI/CD pipeline. The URL is shareable and the page shows the live Docker output as it is produced.
 
 ## Scheduling
 
