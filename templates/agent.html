@@ -1,4 +1,5 @@
-{{define "content"}}
+{{template "base" .}}
+{{define "agent_content"}}
 <div class="space-y-6">
     <div class="flex items-center gap-4">
         <a href="/projects/{{.Project.ID}}" class="text-blue-600 hover:underline text-sm">&larr; {{.Project.Name}}</a>
@@ -166,4 +167,3 @@ function showTab(name) {
 })();
 </script>
 {{end}}
-{{template "base.html" .}}

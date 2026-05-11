@@ -1,3 +1,4 @@
+{{define "base"}}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,25 +8,52 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 min-h-screen flex flex-col">
     <nav class="bg-white shadow-sm border-b">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16 items-center">
-                <a href="/dashboard" class="text-xl font-bold text-gray-900">AgentGrid</a>
+                <div class="flex items-center gap-8">
+                    <a href="/dashboard" class="text-xl font-bold text-gray-900">AgentGrid</a>
+                    {{if .User}}
+                    <a href="/dashboard" class="text-sm text-gray-600 hover:text-gray-900 {{if eq .ContentBlock "dashboard_content"}}font-semibold text-gray-900{{end}}">Dashboard</a>
+                    <a href="/projects" class="text-sm text-gray-600 hover:text-gray-900 {{if eq .ContentBlock "projects_content"}}font-semibold text-gray-900{{end}}">Projects</a>
+                    {{end}}
+                </div>
                 {{if .User}}
                 <div class="flex items-center gap-6">
-                    <a href="/projects" class="text-sm text-gray-600 hover:text-gray-900">Projects</a>
                     <span class="text-sm text-gray-500">{{.User.Username}}</span>
                     <form method="post" action="/auth/logout" class="inline">
                         <button type="submit" class="text-sm text-red-600 hover:text-red-800">Logout</button>
                     </form>
                 </div>
+                {{else}}
+                <div>
+                    <a href="/login" class="text-sm text-gray-600 hover:text-gray-900">Login</a>
+                </div>
                 {{end}}
             </div>
         </div>
     </nav>
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {{template "content" .}}
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {{if eq .ContentBlock "agent_content"}}
+            {{template "agent_content" .}}
+        {{else if eq .ContentBlock "agent_runs_content"}}
+            {{template "agent_runs_content" .}}
+        {{else if eq .ContentBlock "dashboard_content"}}
+            {{template "dashboard_content" .}}
+        {{else if eq .ContentBlock "login_content"}}
+            {{template "login_content" .}}
+        {{else if eq .ContentBlock "project_content"}}
+            {{template "project_content" .}}
+        {{else if eq .ContentBlock "projects_content"}}
+            {{template "projects_content" .}}
+        {{end}}
     </main>
+    <footer class="bg-white border-t mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-center text-xs text-gray-400">
+            AgentGrid — Schedule and run agents on your infrastructure
+        </div>
+    </footer>
 </body>
 </html>
+{{end}}

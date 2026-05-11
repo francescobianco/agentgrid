@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 
 	"agentgrid/internal/db"
 	"agentgrid/internal/scheduler"
@@ -37,8 +38,12 @@ func (s *Server) parseTemplates() {
 	}
 }
 
-func (s *Server) render(w http.ResponseWriter, name string, data interface{}) {
+func (s *Server) render(w http.ResponseWriter, name string, data map[string]interface{}) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if data == nil {
+		data = make(map[string]interface{})
+	}
+	data["ContentBlock"] = strings.TrimSuffix(name, ".html") + "_content"
 	if err := s.tmpls.ExecuteTemplate(w, name, data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
