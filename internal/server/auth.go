@@ -46,6 +46,10 @@ func (s *Server) handleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 
 	clientID := os.Getenv("GITHUB_CLIENT_ID")
 	clientSecret := os.Getenv("GITHUB_CLIENT_SECRET")
+	if clientID == "" || clientSecret == "" {
+		http.Error(w, "GitHub OAuth not configured. Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables.", http.StatusInternalServerError)
+		return
+	}
 
 	token, err := exchangeGitHubCode(code, clientID, clientSecret)
 	if err != nil {
