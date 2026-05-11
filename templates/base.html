@@ -37,12 +37,18 @@
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {{if eq .ContentBlock "agent_content"}}
             {{template "agent_content" .}}
+        {{else if eq .ContentBlock "agent_wake_content"}}
+            {{template "agent_wake_content" .}}
+        {{else if eq .ContentBlock "agent_docker_content"}}
+            {{template "agent_docker_content" .}}
         {{else if eq .ContentBlock "agent_files_content"}}
             {{template "agent_files_content" .}}
+        {{else if eq .ContentBlock "agent_sessions_content"}}
+            {{template "agent_sessions_content" .}}
+        {{else if eq .ContentBlock "agent_logs_content"}}
+            {{template "agent_logs_content" .}}
         {{else if eq .ContentBlock "agent_new_content"}}
             {{template "agent_new_content" .}}
-        {{else if eq .ContentBlock "agent_runs_content"}}
-            {{template "agent_runs_content" .}}
         {{else if eq .ContentBlock "dashboard_content"}}
             {{template "dashboard_content" .}}
         {{else if eq .ContentBlock "login_content"}}

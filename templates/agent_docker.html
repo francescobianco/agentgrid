@@ -1,0 +1,32 @@
+{{template "base" .}}
+{{define "agent_docker_content"}}
+<div class="space-y-6">
+    {{template "agent_header" .}}
+
+    <div class="bg-white rounded-lg shadow p-6">
+        <form method="post" action="/agents/{{.Agent.ID}}" class="space-y-4">
+            <input type="hidden" name="name" value="{{.Agent.Name}}">
+            <input type="hidden" name="mission" value="{{.Agent.Mission}}">
+            <input type="hidden" name="cron_expression" value="{{.Agent.CronExpression}}">
+            <input type="hidden" name="prompt" value="{{.Agent.Prompt}}">
+            <input type="hidden" name="is_active" value="{{if .Agent.IsActive}}on{{end}}">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Docker Image</label>
+                    <input type="text" name="docker_image" value="{{.Agent.DockerImage}}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Working Directory</label>
+                    <input type="text" name="working_directory" value="{{.Agent.WorkingDirectory}}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Dockerfile</label>
+                <textarea name="dockerfile" rows="12" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 border p-2 font-mono text-sm">{{.Agent.Dockerfile}}</textarea>
+                <p class="mt-1 text-xs text-gray-500">Optional. If provided, AgentGrid will build the image from this Dockerfile instead of pulling the image above.</p>
+            </div>
+            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm">Update Docker Settings</button>
+        </form>
+    </div>
+</div>
+{{end}}

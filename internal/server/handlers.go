@@ -202,10 +202,103 @@ func (s *Server) handleAgent(w http.ResponseWriter, r *http.Request) {
 
 	runs, _ := s.db.ListAgentRuns(agent.ID)
 	s.render(w, "agent.html", map[string]interface{}{
-		"User":    user,
-		"Agent":   agent,
-		"Project": project,
-		"Runs":    runs,
+		"User":      user,
+		"Agent":     agent,
+		"Project":   project,
+		"Runs":      runs,
+		"ActiveTab": "agent",
+	})
+}
+
+func (s *Server) handleAgentWake(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	agent, err := s.db.GetAgent(id)
+	if err != nil {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+	runs, _ := s.db.ListAgentRuns(agent.ID)
+	s.render(w, "agent_wake.html", map[string]interface{}{
+		"User":      user,
+		"Agent":     agent,
+		"Project":   project,
+		"Runs":      runs,
+		"ActiveTab": "wake",
+	})
+}
+
+func (s *Server) handleAgentDocker(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	agent, err := s.db.GetAgent(id)
+	if err != nil {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+	runs, _ := s.db.ListAgentRuns(agent.ID)
+	s.render(w, "agent_docker.html", map[string]interface{}{
+		"User":      user,
+		"Agent":     agent,
+		"Project":   project,
+		"Runs":      runs,
+		"ActiveTab": "docker",
+	})
+}
+
+func (s *Server) handleAgentSessions(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	agent, err := s.db.GetAgent(id)
+	if err != nil {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+	runs, _ := s.db.ListAgentRuns(agent.ID)
+	s.render(w, "agent_sessions.html", map[string]interface{}{
+		"User":      user,
+		"Agent":     agent,
+		"Project":   project,
+		"Runs":      runs,
+		"ActiveTab": "sessions",
+	})
+}
+
+func (s *Server) handleAgentLogs(w http.ResponseWriter, r *http.Request) {
+	user := UserFromContext(r.Context())
+	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
+	agent, err := s.db.GetAgent(id)
+	if err != nil {
+		http.Error(w, "Agent not found", http.StatusNotFound)
+		return
+	}
+	project, err := s.db.GetProject(agent.ProjectID)
+	if err != nil || project.UserID != user.ID {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+	runs, _ := s.db.ListAgentRuns(agent.ID)
+	s.render(w, "agent_logs.html", map[string]interface{}{
+		"User":      user,
+		"Agent":     agent,
+		"Project":   project,
+		"Runs":      runs,
+		"ActiveTab": "logs",
 	})
 }
 
@@ -266,30 +359,6 @@ func (s *Server) handleDeleteAgent(w http.ResponseWriter, r *http.Request) {
 	s.sched.RemoveAgent(id)
 	s.db.DeleteAgent(id)
 	http.Redirect(w, r, "/projects/"+strconv.FormatInt(agent.ProjectID, 10), http.StatusSeeOther)
-}
-
-func (s *Server) handleAgentRuns(w http.ResponseWriter, r *http.Request) {
-	user := UserFromContext(r.Context())
-	id, _ := strconv.ParseInt(chi.URLParam(r, "id"), 10, 64)
-
-	agent, err := s.db.GetAgent(id)
-	if err != nil {
-		http.Error(w, "Agent not found", http.StatusNotFound)
-		return
-	}
-
-	project, err := s.db.GetProject(agent.ProjectID)
-	if err != nil || project.UserID != user.ID {
-		http.Error(w, "Forbidden", http.StatusForbidden)
-		return
-	}
-
-	runs, _ := s.db.ListAgentRuns(agent.ID)
-	s.render(w, "agent_runs.html", map[string]interface{}{
-		"User":  user,
-		"Agent": agent,
-		"Runs":  runs,
-	})
 }
 
 func (s *Server) handleRunAgentNow(w http.ResponseWriter, r *http.Request) {

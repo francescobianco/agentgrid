@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"agentgrid/internal/db"
@@ -32,9 +33,14 @@ func New(database *db.Database, sched *scheduler.Scheduler, mode string) *Server
 
 func (s *Server) parseTemplates() {
 	var err error
-	s.tmpls, err = template.ParseGlob("templates/*.html")
-	if err != nil {
-		log.Printf("Warning: could not parse templates: %v", err)
+	files, _ := filepath.Glob("templates/*.html")
+	partialFiles, _ := filepath.Glob("templates/**/*.html")
+	allFiles := append(files, partialFiles...)
+	if len(allFiles) > 0 {
+		s.tmpls, err = template.New("").ParseFiles(allFiles...)
+		if err != nil {
+			log.Printf("Warning: could not parse templates: %v", err)
+		}
 	}
 }
 
@@ -84,7 +90,10 @@ func (s *Server) Handler() http.Handler {
 		r.Get("/agents/{id}", s.handleAgent)
 		r.Post("/agents/{id}", s.handleUpdateAgent)
 		r.Post("/agents/{id}/delete", s.handleDeleteAgent)
-		r.Get("/agents/{id}/runs", s.handleAgentRuns)
+		r.Get("/agents/{id}/wake", s.handleAgentWake)
+		r.Get("/agents/{id}/docker", s.handleAgentDocker)
+		r.Get("/agents/{id}/sessions", s.handleAgentSessions)
+		r.Get("/agents/{id}/logs", s.handleAgentLogs)
 		r.Get("/agents/{id}/runs/{run_id}", s.handleRunDetail)
 		r.Get("/agents/{id}/runs/{run_id}/stream", s.handleRunStream)
 		r.Post("/agents/{id}/run", s.handleRunAgentNow)
